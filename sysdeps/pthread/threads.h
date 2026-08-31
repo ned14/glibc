@@ -232,6 +232,84 @@ extern int tss_set (tss_t __tss_id, void *__val);
    destructor is not called until thrd_exit is called.  */
 extern void tss_delete (tss_t __tss_id);
 
+#ifdef __USE_GNU
+/*
+ * WG14 N3924 improved-C-signals API (async-signal-safe TSS, 7.30.6.5-8)
+ * and the reference-implementation thread-id API.
+ *
+ * This block is a mirror of the declarations in the wg14_signals
+ * submodule (wg14_signals/include/wg14_signals/tss_async_signal_safe.h
+ * and current_thread_id.h), which the wg14 subdir compiles into libc as
+ * the N3924 entrypoints.  The mirror must stay in sync with the pinned
+ * submodule: the sync test wg14/check-wg14-mirror.py (part of make
+ * check) verifies every declaration below against the submodule's
+ * headers.  current_thread_id()/thread_id_t are reference-implementation
+ * extensions, not part of the N3924 wording (exposed here per the
+ * llvm-libc fork precedent).  */
+
+#include <stdint.h>
+
+/* The type of an async signal safe thread local.  */
+typedef struct tss_async_signal_safe_s *tss_async_signal_safe_t;
+
+/* The attributes for creating an async signal safe thread local.  */
+struct tss_async_signal_safe_attr
+{
+  int (*const create) (void **dest);	/* Create an instance.  */
+  int (*const destroy) (void *v);	/* Destroy an instance.  */
+};
+
+/* Create an async signal safe thread local instance.  */
+extern int tss_async_signal_safe_create (tss_async_signal_safe_t *val,
+					 const struct tss_async_signal_safe_attr *attr);
+
+/* Destroy an async signal safe thread local instance.  All threads that
+   initialised this instance must have exited before this is called: a
+   thread's exit-time deinitialisation handler may still access the
+   instance otherwise.  */
+extern int tss_async_signal_safe_destroy (tss_async_signal_safe_t val);
+
+/* THREADSAFE Initialise an async signal safe thread local instance for a
+   specific thread.  The initialisation and registration of a thread local
+   state for a specific thread is not async signal safe, and so must be
+   manually performed by each thread before use.  */
+extern int tss_async_signal_safe_thread_init (tss_async_signal_safe_t val);
+
+/* THREADSAFE ASYNC-SIGNAL-SAFE Get the thread local value for the current
+   thread.  */
+extern void *tss_async_signal_safe_get (tss_async_signal_safe_t val);
+
+/* The type of a thread id.  */
+typedef uintptr_t thread_id_t;
+
+static const thread_id_t
+thread_id_t_tombstone = 0;
+
+/* The cached current thread id, read by current_thread_id().  Initial-exec
+   TLS so the read is async-signal-safe; consumer declarations must keep
+   this spelling (see plans/glibc-fork.md "TLS policy inside glibc").  */
+extern __thread thread_id_t current_thread_id_cached
+  __attribute__ ((tls_model ("initial-exec")));
+
+extern thread_id_t internal_current_thread_id_cached_set (void);
+
+/* THREADSAFE ASYNC-SIGNAL-SAFE Retrieve the current thread id.  */
+static inline thread_id_t
+current_thread_id (void)
+{
+#if defined __USE_GNU
+  if (current_thread_id_cached == thread_id_t_tombstone)
+    {
+      current_thread_id_cached = internal_current_thread_id_cached_set ();
+    }
+  return current_thread_id_cached;
+#else
+  return internal_current_thread_id_cached_set ();
+#endif
+}
+
+#endif /* __USE_GNU */
+
 __END_DECLS
 
 #endif /* _THREADS_H */

@@ -2956,6 +2956,26 @@ GLIBC_2.43 memset_explicit F
 GLIBC_2.43 mseal F
 GLIBC_2.43 openat2 F
 GLIBC_2.43 umaxabs F
+GLIBC_2.44 current_thread_id_cached T 0x8
+GLIBC_2.44 internal_current_thread_id_cached_set F
+GLIBC_2.44 sigdecider_abandon F
+GLIBC_2.44 sigdecider_abandon_resume F
+GLIBC_2.44 sigfillset_asynchronous_debug F
+GLIBC_2.44 sigfillset_asynchronous_nondebug F
+GLIBC_2.44 sigfillset_synchronous F
+GLIBC_2.44 sigguarded F
+GLIBC_2.44 siginstall F
+GLIBC_2.44 siginstall_set_default_action_np F
+GLIBC_2.44 siginstall_set_sa_flags_np F
+GLIBC_2.44 signal_decider_create F
+GLIBC_2.44 signal_decider_destroy F
+GLIBC_2.44 siguninstall F
+GLIBC_2.44 siguninstall_system F
+GLIBC_2.44 stdc_raise F
+GLIBC_2.44 tss_async_signal_safe_create F
+GLIBC_2.44 tss_async_signal_safe_destroy F
+GLIBC_2.44 tss_async_signal_safe_get F
+GLIBC_2.44 tss_async_signal_safe_thread_init F
 GLIBC_2.5 __readlinkat_chk F
 GLIBC_2.5 inet6_opt_append F
 GLIBC_2.5 inet6_opt_find F

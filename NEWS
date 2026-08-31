@@ -90,6 +90,19 @@ Major new features:
 
 * A new locale has been added: hrx_BR (Hunsrik language spoken in Brazil).
 
+* The WG14 N3924 improved-C-signals API is now available on Linux, declared
+  in <signal.h> and <threads.h> under __USE_GNU: sigguarded, stdc_raise,
+  siginstall, siguninstall, siguninstall_system, signal_decider_create,
+  signal_decider_destroy, sigfillset_synchronous,
+  sigfillset_asynchronous_nondebug, sigfillset_asynchronous_debug,
+  sigdecider_abandon, sigdecider_abandon_resume, siginstall_set_sa_flags_np,
+  siginstall_set_default_action_np, the sigfence macro,
+  SIGGUARDED_FAILURE_VALUE, the tss_async_signal_safe_* functions and
+  current_thread_id, implemented in libc from the wg14_signals reference
+  implementation.  glibc's internal signals (SIGCANCEL/SIGSETXID) are never
+  installed by siginstall, and the raw signal handlers never set
+  SA_NOCLDWAIT, so POSIX wait()/zombie semantics are preserved.
+
 Deprecated and removed features, and other changes affecting compatibility:
 
 * Although malloc and related functions currently return pointers
