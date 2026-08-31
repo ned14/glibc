@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and run test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            bison \
+            gawk \
+            python3
+
+      - name: Configure and build
+        run: |
+          mkdir -p build
+          cd build
+          ../configure --prefix=/usr
+          make -j$(nproc)
+
+      - name: Run test suite with exact breakdown
+        run: |
+          cd build
+          # GitHub's bash wrapper applies `set -e -o pipefail`, so a failing
+          # `make check` would abort this step and hide its summary.  Capture
+          # the rc instead and report the exact test breakdown before exiting
+          # with make's rc (0 = green, 2 = test failures, as glibc defines).
+          set +e
+          make -j$(nproc) check > check.log 2>&1
+          check_rc=$?
+          set -e
+
+          # Canonical per-test statuses come from the merged tests.sum file
+          # (the same source as glibc's own "=== Summary of results ==="
+          # block).  If make check died before the merge (e.g. a test failed
+          # to compile), fall back to the raw per-test .test-result files.
+          if [ -f tests.sum ]; then
+            sumfile="tests.sum"
+            sumdesc="merged tests.sum"
+          else
+            sumfile="test-results-manifest.txt"
+            sumdesc="raw .test-result files (make check did not reach the merge)"
+            find . -name '*.test-result' -type f | sort | \
+              while read -r f; do head -1 "$f"; done > "$sumfile"
+          fi
+
+          pass=$(grep -c '^PASS:' "$sumfile" || true)
+          fail=$(grep -c '^FAIL:' "$sumfile" || true)
+          xpass=$(grep -c '^XPASS:' "$sumfile" || true)
+          xfail=$(grep -c '^XFAIL:' "$sumfile" || true)
+          unsupported=$(grep -c '^UNSUPPORTED:' "$sumfile" || true)
+          unresolved=$(grep -c '^UNRESOLVED:' "$sumfile" || true)
+          error=$(grep -c '^ERROR:' "$sumfile" || true)
+          total=$((pass + fail + xpass + xfail + unsupported + unresolved + error))
+
+          # The names of every result that makes make check's rc non-zero.
+          grep -E '^(FAIL|XPASS|ERROR|UNRESOLVED):' "$sumfile" \
+            | sort -u > failing-tests.txt
+
+          # Collect the .out / .test-result diagnostics of the failing tests
+          # into one folder for the artifact.
+          if [ -s failing-tests.txt ]; then
+            mkdir -p failure-outputs
+            while IFS= read -r line; do
+              name=$(sed 's/^[A-Z]*: *//' <<< "$line")
+              for f in "$name".out "$name".test-result; do
+                [ -f "$f" ] && cp "$f" "failure-outputs/$(tr / _ <<< "$f")"
+              done
+            done < failing-tests.txt
+          fi
+
+          echo "=== glibc test suite breakdown (from $sumdesc) ==="
+          printf '  %-14s %6s\n' "Status" "Count"
+          printf '  %-14s %6d\n' "PASS" "$pass"
+          printf '  %-14s %6d\n' "FAIL" "$fail"
+          printf '  %-14s %6d\n' "XPASS" "$xpass"
+          printf '  %-14s %6d\n' "XFAIL" "$xfail"
+          printf '  %-14s %6d\n' "UNSUPPORTED" "$unsupported"
+          printf '  %-14s %6d\n' "UNRESOLVED" "$unresolved"
+          printf '  %-14s %6d\n' "ERROR" "$error"
+          printf '  %-14s %6d\n' "TOTAL" "$total"
+          echo "  make check rc = $check_rc"
+
+          if [ -s failing-tests.txt ]; then
+            echo "=== Failing tests ($(wc -l < failing-tests.txt | tr -d ' ') unique) ==="
+            head -50 failing-tests.txt
+            n=$(wc -l < failing-tests.txt | tr -d ' ')
+            if [ "$n" -gt 50 ]; then
+              echo "... and $((n - 50)) more (full list in $sumfile / failing-tests.txt)"
+            fi
+          else
+            echo "=== No failing tests ==="
+          fi
+
+          # Write the markdown breakdown to the job summary so it renders on
+          # the workflow run page, and save a copy into the artifact.
+          {
+            echo "## glibc test suite ($sumdesc, make check rc = $check_rc)"
+            echo ""
+            echo "| Status | Count |"
+            echo "|---|---:|"
+            echo "| PASS | $pass |"
+            echo "| FAIL | $fail |"
+            echo "| XPASS (unexpected pass) | $xpass |"
+            echo "| XFAIL (expected fail) | $xfail |"
+            echo "| UNSUPPORTED (skipped) | $unsupported |"
+            echo "| UNRESOLVED (not run) | $unresolved |"
+            echo "| ERROR | $error |"
+            echo "| **TOTAL** | **$total** |"
+          } | tee test-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$check_rc" -ne 0 ]; then
+            echo "::error title=glibc test suite::make check rc=$check_rc — $fail FAIL, $xpass XPASS, $unresolved UNRESOLVED, $error ERROR, $total tests total"
+          fi
+
+          exit "$check_rc"
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            build/check.log
+            build/tests.sum
+            build/test-summary.md
+            build/failing-tests.txt
+            build/failure-outputs/
+            build/**/*.test-result
+          if-no-files-found: ignore
