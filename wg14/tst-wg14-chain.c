@@ -26,6 +26,7 @@
 #define _GNU_SOURCE 1
 
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <support/check.h>

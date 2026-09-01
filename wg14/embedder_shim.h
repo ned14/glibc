@@ -86,16 +86,21 @@
    (plans/glibc-fork.md "Public API surface", conflicts).  */
 #define WG14_SIGNALS_GLIBC_EMBEDDED 1
 
-/* The public <signal/signal.h>, NOT the internal <signal.h>: the
-   internal header declares glibc's hidden-symbol protos
-   (libc_hidden_proto), and libc-symbols.h - which defines that macro - is
-   force-included AFTER this shim on the compiler command line (the
-   -include flags are processed in order).  The public header provides
-   struct sigaction, sigset_t and the SA_* constants; the mirror's
+/* The INTERNAL <signal.h> (include/signal.h), not the public
+   <signal/signal.h>: the internal header re-includes the public one and
+   additionally declares the libc_hidden_proto hidden aliases for the
+   sigset helpers, __libc_current_sigrtmin/max, __sigaction etc., so the
+   wg14 objects' host calls bind hidden (no PLT) exactly like every other
+   libc object.  This is safe because the shim is force-included AFTER
+   libc-symbols.h (per-basename CPPFLAGS slot, Makeconfig:1130) - the
+   macro libc_hidden_proto is already defined when the shim parses; the
+   fork's original include of the public header (before the force-include
+   order fix) pre-defined _SIGNAL_H and silently disabled the internal
+   header's whole hidden-prototype and sigsetops section.  The mirror's
    sigfence()/SIGGUARDED_FAILURE_VALUE/declarations are inactive in the
    wg14 translation units (WG14_SIGNALS_GLIBC_EMBEDDED is defined above
    and the DISABLE defines keep the submodule's own copies suppressed).  */
-#include <signal/signal.h>
+#include <signal.h>
 
 /* Bind to glibc's hidden internal alias of __sigaction (created by
    libc_hidden_def in signal/sigaction.c) exactly as libc_hidden_proto
@@ -107,6 +112,21 @@
 extern int __sigaction (int, const struct sigaction *__restrict,
 			struct sigaction *__restrict)
   __asm__ ("__GI___sigaction") __attribute__ ((visibility ("hidden")));
+
+/* The reference's default WG14_SIGNALS_GETTID() is syscall(SYS_gettid)
+   (config.h:213).  glibc maps the asm-generic syscall numbers to SYS_*
+   names only for the architectures with a dedicated bits/syscall.h list,
+   so on aarch64 and other asm-generic targets SYS_gettid is NOT defined
+   by <sys/syscall.h> and the default does not compile inside glibc (the
+   standalone suite is unaffected - it builds against host installed
+   headers).  glibc's own thread-id query is the hidden __gettid
+   (syscalls.list generated syscall wrapper, weak-aliased to the public
+   gettid GLIBC_2.30; declared with libc_hidden_proto in
+   include/bits/unistd_ext.h): an rt_syscall stub that is async-signal-
+   safe and thread-safe, binds via the hidden alias (no PLT) and is what
+   nptl itself uses (nptl/pthread_kill.c:79).  */
+
+#define WG14_SIGNALS_GETTID() __gettid ()
 
 /* Route raw-handler installs through glibc's own entrypoint, stripping
    SA_NOCLDWAIT so POSIX wait()/zombie semantics survive (llvm-libc fork

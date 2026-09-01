@@ -28,6 +28,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -38,10 +39,22 @@
    reset the kernel disposition to SIG_DFL, then re-deliver with the
    original siginfo preserved (Linux SYS_rt_tgsigqueueinfo), falling back
    to a plain self-delivery.  Async-signal-safe throughout.  */
+static int *handoff_addr_sink;
+
 static void
 siginfo_preserving_cb (int signo, siginfo_t *raw_info, void *raw_context)
 {
   (void) raw_context;
+  if (handoff_addr_sink != NULL)
+    {
+      /* Report the siginfo the callback received BEFORE re-raising: the
+         parent verifies si_addr fidelity through this shared page (Linux
+         waitid() on a reaped child returns a SIGCHLD record whose si_addr
+         member is not the faulting address).  A plain aligned int store to
+         a MAP_SHARED page is async-signal-safe.  */
+      *handoff_addr_sink =
+	  (int) (intptr_t) (raw_info != NULL ? raw_info->si_addr : NULL);
+    }
   struct sigaction dfl;
   memset (&dfl, 0, sizeof (dfl));
   dfl.sa_handler = SIG_DFL;
@@ -78,8 +91,13 @@ child_provoke_segv (void)
     _exit (42);
   /* A genuine fault: the raw handler runs, no decider claims, the
      SIG_DFL default-action callback re-delivers with the original
-     siginfo (si_addr == 1), and the child dies by SIGSEGV.  */
+     siginfo (si_addr == 1), and the child dies by SIGSEGV.  GCC's
+     -Warray-bounds (fatal here) models the arbitrary-pointer store as an
+     out-of-bounds zero-length-array access; suppress it for this line.  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
   *(volatile int *) (uintptr_t) 1 = 1;
+#pragma GCC diagnostic pop
   _exit (43); /* The SIG_DFL handoff must have killed us.  */
 }
 
@@ -138,9 +156,19 @@ do_test (void)
 
   /* Phase 3 (REQUIRED): the siginfo-preserving handoff.  A genuine
      SIGSEGV is re-delivered by the default-action callback with the
-     original siginfo, so the death's si_addr matches the faulting
-     address.  */
+     original siginfo: the callback observes si_addr == 1 (reported
+     through a shared page before the re-raise) and the child dies with
+     SIGSEGV.  Linux waitid() on a reaped child returns a SIGCHLD record
+     whose si_addr member is not even the faulting address, so the
+     callback-side observation is the fidelity check.  */
   {
+    int *handoff_addr = mmap (NULL, sizeof (int), PROT_READ | PROT_WRITE,
+			      MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    TEST_VERIFY (handoff_addr != MAP_FAILED);
+    if (handoff_addr == MAP_FAILED)
+      return 1;
+    *handoff_addr = -1;
+    handoff_addr_sink = handoff_addr;
     pid_t pid = fork ();
     TEST_VERIFY (pid >= 0);
     if (pid == 0)
@@ -150,7 +178,9 @@ do_test (void)
     TEST_COMPARE (waitid (P_PID, pid, &sinfo, WEXITED), 0);
     TEST_VERIFY (WIFSIGNALED (sinfo.si_status));
     TEST_COMPARE (WTERMSIG (sinfo.si_status), SIGSEGV);
-    TEST_VERIFY (sinfo.si_addr == (void *) (uintptr_t) 1);
+    TEST_VERIFY (*handoff_addr == 1);
+    TEST_COMPARE (munmap (handoff_addr, sizeof (int)), 0);
+    handoff_addr_sink = NULL;
   }
 
   return 0;

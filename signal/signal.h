@@ -464,16 +464,22 @@ struct global_signal_decider_t;
   /* GNU/Clang/MSVC extension in older modes). Verify at compile time that the */
   /* counting machinery returns the right counts: on a compiler without */
   /* __VA_OPT__ the expansion below is a hard preprocessing error, and on a */
-  /* compiler whose counting is broken the assertion fails — either way the */
+  /* compiler whose counting is broken the assertion fails -- either way the */
   /* defect surfaces instead of silently mis-dispatching. (The zero-argument */
-  /* path — the comma-suppression case __VA_OPT__ exists for — is exercised by */
+  /* path -- the comma-suppression case __VA_OPT__ exists for -- is exercised by */
   /* test/sigfence_fence_test.c, whose TU suppresses the -Wpedantic diagnostic */
   /* that an empty variadic-macro call triggers; a public header must not. */
-  /* The counts asserted here — 3 and 5 — are in the 1..8 range that the */
+  /* The counts asserted here -- 3 and 5 -- are in the 1..8 range that the */
   /* non-__VA_OPT__ fallback counting also handles, so the assert is valid on */
   /* every supported compiler, including MSVC C++14/17.) */
-#if (defined __cplusplus && __cplusplus >= 201103L) || \
-    (defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L)
+#if defined __cplusplus && __cplusplus >= 201103L
+  static_assert(
+  ((WG14_SIGNALS_SIGFENCE_COUNT_ARGS_MAX8(a, b, c) == 3) &&
+   (WG14_SIGNALS_SIGFENCE_COUNT_ARGS_MAX8(a, b, c, d, e) == 5)),
+  "wg14_signals: sigfence() argument counting is broken (requires __VA_OPT__ "
+  "on this compiler, or a counting-broken preprocessor)");
+#elif defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L && \
+        !defined __cplusplus
   _Static_assert(
   ((WG14_SIGNALS_SIGFENCE_COUNT_ARGS_MAX8(a, b, c) == 3) &&
    (WG14_SIGNALS_SIGFENCE_COUNT_ARGS_MAX8(a, b, c, d, e) == 5)),

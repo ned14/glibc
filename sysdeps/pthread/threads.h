@@ -293,7 +293,12 @@ extern __thread thread_id_t current_thread_id_cached
 
 extern thread_id_t internal_current_thread_id_cached_set (void);
 
-/* THREADSAFE ASYNC-SIGNAL-SAFE Retrieve the current thread id.  */
+/* THREADSAFE ASYNC-SIGNAL-SAFE Retrieve the current thread id.
+   `inline` is not valid in strict C89 modes that the installed-header
+   checks cover, so the declaration is C99/C++-gated (the reference
+   implementation itself is C11-minimum; the mirror-sync checker strips
+   preprocessor lines, so this gate does not affect the verbatim match).  */
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L || defined __cplusplus
 static inline thread_id_t
 current_thread_id (void)
 {
@@ -307,6 +312,7 @@ current_thread_id (void)
   return internal_current_thread_id_cached_set ();
 #endif
 }
+#endif
 
 #endif /* __USE_GNU */
 

@@ -82,11 +82,18 @@ do_test (void)
   TEST_COMPARE (sigismember (explicit, SIGTERM), 1);
   TEST_COMPARE (siguninstall (explicit), 0);
 
-  /* Path (c): an explicit set with SIGCANCEL hand-added via sigaddset
-     makes siginstall return NULL with errno = EINVAL and a full rollback
-     - no partial installs remain.  SIGTERM sorts before 32 in the install
-     loop, so its pre-install disposition must be untouched afterwards,
-     and a subsequent siginstall(NULL) must still work.  */
+  /* Path (c): an explicit set with SIGCANCEL hand-added via sigaddset.
+     Inside libc the wg14 library objects see the internal pthread
+     headers, which define SIGCANCEL/SIGSETXID (sysdeps/nptl/pthreadP.h
+     -> internal-signals.h), so the reference's own libc-internal-signal
+     deletion fires (thrd_signal_handle_common.ipp.ipp:583-588 - the
+     reference's documented intent: "libc-internal signals are never
+     installable, regardless of which guarded set was supplied") and the
+     call SUCCEEDS with SIGCANCEL silently excluded - no EINVAL, no
+     rollback (the standalone suite sees the EINVAL-rollback arm instead,
+     because its build uses only public headers where SIGCANCEL is not
+     defined).  SIGTERM sorts before 32 in the install loop, so it is
+     installed by this call and must be restored by the siguninstall.  */
   struct sigaction sa_before, sa_after;
   memset (&sa_before, 0, sizeof (sa_before));
   TEST_COMPARE (sigaction (SIGTERM, NULL, &sa_before), 0);
@@ -96,13 +103,21 @@ do_test (void)
   sigaddset (&bad, SIGTERM);
   sigaddset (&bad, SIGCANCEL_NUM);
   errno = 0;
-  TEST_VERIFY (siginstall (&bad) == NULL);
-  TEST_COMPARE (errno, EINVAL);
+  void *bad_handlers = siginstall (&bad);
+  TEST_VERIFY (bad_handlers != NULL);
+  if (bad_handlers != NULL)
+    {
+      TEST_COMPARE (sigismember (bad_handlers, SIGCANCEL_NUM), 0);
+      memset (&sa_after, 0, sizeof (sa_after));
+      TEST_COMPARE (sigaction (SIGTERM, NULL, &sa_after), 0);
+      TEST_VERIFY (sa_after.sa_handler != SIG_DFL);
+      TEST_COMPARE (siguninstall (bad_handlers), 0);
+    }
   memset (&sa_after, 0, sizeof (sa_after));
   TEST_COMPARE (sigaction (SIGTERM, NULL, &sa_after), 0);
   TEST_VERIFY (sa_after.sa_handler == SIG_DFL);
   TEST_VERIFY (sa_after.sa_sigaction == sa_before.sa_sigaction);
-  sigset_t *after_rollback = siginstall (NULL);
+  void *after_rollback = siginstall (NULL);
   TEST_VERIFY (after_rollback != NULL);
   if (after_rollback != NULL)
     TEST_COMPARE (siguninstall (after_rollback), 0);

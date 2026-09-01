@@ -151,7 +151,10 @@ do_test (void)
 	= sigguarded (&guarded, sigill_func, sigill_recovery_func,
 		      nested_rsi_decider, value);
     TEST_COMPARE (result.int_value, 7);
-    TEST_COMPARE (atomic_load (&outer_decider_calls), 1);
+    /* Two decider entries total: the outer software activation and the
+       nested kernel delivery both run this decider (the standalone
+       nested_decider_rsi_test.c expects 2 for the same reason).  */
+    TEST_COMPARE (atomic_load (&outer_decider_calls), 2);
     TEST_COMPARE (atomic_load (&nested_decider_calls), 1);
     TEST_COMPARE (outer_saw_nested_info, 0);
     TEST_COMPARE (nested_saw_bad_info, 0);
