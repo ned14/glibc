@@ -12,6 +12,12 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The wg14_signals submodule (N3924 improved-C-signals reference
+          # implementation) is needed to build the wg14 subdir; its nested
+          # doc/html submodule stays uninitialized (not needed by the
+          # build or the tests).
+          submodules: recursive
 
       - name: Install build dependencies
         run: |

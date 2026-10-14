@@ -8,3 +8,22 @@ libc.so: free + RELA R_X86_64_GLOB_DAT
 libc.so: malloc + RELA R_X86_64_GLOB_DAT
 libc.so: realloc + RELA R_X86_64_GLOB_DAT
 libm.so: matherr + RELA R_X86_64_GLOB_DAT
+# The wg14_signals N3924 entrypoints (wg14 subdir) call libc's public
+# entrypoints by name with no hidden aliases for these (glibc declares
+# no libc_hidden_proto for them); the sigset helpers, sigaction and
+# __libc_current_sigrtmin/max bind hidden via the internal headers.
+libc.so: pthread_kill
+libc.so: pthread_self
+libc.so: _longjmp
+libc.so: __cxa_thread_atexit_impl
+# stdc_raise()'s real self-delivery (raise_with_token -> syscall with
+# SYS_rt_tgsigqueueinfo) and its constructed default context (getcontext)
+# also bind by name: glibc has no libc_hidden_proto for either.
+libc.so: syscall ?
+libc.so: getcontext ?
+# Internal cross-calls between the wg14 objects themselves (the
+# reference implementation has no hidden-alias machinery; zero-drift).
+libc.so: thread_atexit
+libc.so: signal_decider_destroy
+libc.so: sighandle
+libc.so: internal_current_thread_id_cached_set

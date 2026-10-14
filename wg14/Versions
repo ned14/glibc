@@ -1,0 +1,40 @@
+# WG14 N3924 improved-C-signals API (wg14_signals), versioned symbols.
+# See plans/glibc-fork.md "Symbol versioning and ABI".
+#
+# The 19 public functions are exported at GLIBC_2.44 (the current
+# development version node; the tree is at 2.44.9000).  current_thread_id
+# itself is a static inline in <threads.h>; its initial-exec TLS cache
+# variable current_thread_id_cached is the exported data symbol consumers
+# read.  thread_atexit is the internal cross-object helper the
+# tss_async_signal_safe objects call directly (tss_async_signal_safe.c.ipp:
+# 340); it must stay resolvable between the wg14 objects inside libc.so,
+# hence GLIBC_PRIVATE (the generated libc.map hides everything not listed,
+# and GLIBC_PRIVATE symbols are exempt from the abilist files).
+libc {
+  GLIBC_2.44 {
+    current_thread_id_cached;
+    internal_current_thread_id_cached_set;
+    sigdecider_abandon;
+    sigdecider_abandon_resume;
+    sigfillset_asynchronous_debug;
+    sigfillset_asynchronous_nondebug;
+    sigfillset_synchronous;
+    sigguarded;
+    siginstall;
+    siginstall_set_default_action_np;
+    siginstall_set_sa_flags_np;
+    signal_decider_create;
+    signal_decider_destroy;
+    siguninstall;
+    siguninstall_system;
+    sighandle;
+    stdc_raise;
+    tss_async_signal_safe_create;
+    tss_async_signal_safe_destroy;
+    tss_async_signal_safe_get;
+    tss_async_signal_safe_thread_init;
+  }
+  GLIBC_PRIVATE {
+    thread_atexit;
+  }
+}

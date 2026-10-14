@@ -682,6 +682,7 @@ GLIBC_2.44 creat64 F
 GLIBC_2.44 ctermid F
 GLIBC_2.44 ctime F
 GLIBC_2.44 ctime_r F
+GLIBC_2.44 current_thread_id_cached T 0x4
 GLIBC_2.44 cuserid F
 GLIBC_2.44 daemon F
 GLIBC_2.44 daylight D 0x4
@@ -1156,6 +1157,7 @@ GLIBC_2.44 inotify_init F
 GLIBC_2.44 inotify_init1 F
 GLIBC_2.44 inotify_rm_watch F
 GLIBC_2.44 insque F
+GLIBC_2.44 internal_current_thread_id_cached_set F
 GLIBC_2.44 ioctl F
 GLIBC_2.44 iruserok F
 GLIBC_2.44 iruserok_af F
@@ -1850,18 +1852,29 @@ GLIBC_2.44 sigaddset F
 GLIBC_2.44 sigaltstack F
 GLIBC_2.44 sigandset F
 GLIBC_2.44 sigblock F
+GLIBC_2.44 sigdecider_abandon F
+GLIBC_2.44 sigdecider_abandon_resume F
 GLIBC_2.44 sigdelset F
 GLIBC_2.44 sigdescr_np F
 GLIBC_2.44 sigemptyset F
 GLIBC_2.44 sigfillset F
+GLIBC_2.44 sigfillset_asynchronous_debug F
+GLIBC_2.44 sigfillset_asynchronous_nondebug F
+GLIBC_2.44 sigfillset_synchronous F
 GLIBC_2.44 siggetmask F
+GLIBC_2.44 sigguarded F
 GLIBC_2.44 sighold F
 GLIBC_2.44 sigignore F
+GLIBC_2.44 siginstall F
+GLIBC_2.44 siginstall_set_default_action_np F
+GLIBC_2.44 siginstall_set_sa_flags_np F
 GLIBC_2.44 siginterrupt F
 GLIBC_2.44 sigisemptyset F
 GLIBC_2.44 sigismember F
 GLIBC_2.44 siglongjmp F
 GLIBC_2.44 signal F
+GLIBC_2.44 signal_decider_create F
+GLIBC_2.44 signal_decider_destroy F
 GLIBC_2.44 signalfd F
 GLIBC_2.44 sigorset F
 GLIBC_2.44 sigpause F
@@ -1875,6 +1888,8 @@ GLIBC_2.44 sigsetmask F
 GLIBC_2.44 sigstack F
 GLIBC_2.44 sigsuspend F
 GLIBC_2.44 sigtimedwait F
+GLIBC_2.44 siguninstall F
+GLIBC_2.44 siguninstall_system F
 GLIBC_2.44 sigwait F
 GLIBC_2.44 sigwaitinfo F
 GLIBC_2.44 sleep F
@@ -1959,6 +1974,8 @@ GLIBC_2.44 stdc_leading_zeros_ui F
 GLIBC_2.44 stdc_leading_zeros_ul F
 GLIBC_2.44 stdc_leading_zeros_ull F
 GLIBC_2.44 stdc_leading_zeros_us F
+GLIBC_2.44 sighandle F
+GLIBC_2.44 stdc_raise F
 GLIBC_2.44 stdc_trailing_ones_uc F
 GLIBC_2.44 stdc_trailing_ones_ui F
 GLIBC_2.44 stdc_trailing_ones_ul F
@@ -2131,6 +2148,10 @@ GLIBC_2.44 towupper_l F
 GLIBC_2.44 truncate F
 GLIBC_2.44 truncate64 F
 GLIBC_2.44 tsearch F
+GLIBC_2.44 tss_async_signal_safe_create F
+GLIBC_2.44 tss_async_signal_safe_destroy F
+GLIBC_2.44 tss_async_signal_safe_get F
+GLIBC_2.44 tss_async_signal_safe_thread_init F
 GLIBC_2.44 tss_create F
 GLIBC_2.44 tss_delete F
 GLIBC_2.44 tss_get F
