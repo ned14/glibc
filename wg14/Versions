@@ -27,6 +27,7 @@ libc {
     signal_decider_destroy;
     siguninstall;
     siguninstall_system;
+    sighandle;
     stdc_raise;
     tss_async_signal_safe_create;
     tss_async_signal_safe_destroy;

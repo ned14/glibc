@@ -2971,6 +2971,7 @@ GLIBC_2.44 signal_decider_create F
 GLIBC_2.44 signal_decider_destroy F
 GLIBC_2.44 siguninstall F
 GLIBC_2.44 siguninstall_system F
+GLIBC_2.44 sighandle F
 GLIBC_2.44 stdc_raise F
 GLIBC_2.44 tss_async_signal_safe_create F
 GLIBC_2.44 tss_async_signal_safe_destroy F

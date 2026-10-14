@@ -18,7 +18,7 @@
 
 # The WG14 N3924 improved-C-signals reference implementation
 # (https://github.com/ned14/wg14_signals, Apache-2.0, pinned at
-# d25ccd22a6ea86a1e1c54ddbfe9988b1103e9db9) is mounted as a pristine git
+# 2217d72eb0d1266eb8e97f2b5df0e83792b73867) is mounted as a pristine git
 # submodule at wg14_signals/ and compiled into libc unmodified: the four
 # POSIX C sources under wg14_signals/src/wg14_signals are this subdir's
 # routines, with `-I $(..)wg14_signals/include` and the force-included
@@ -106,6 +106,7 @@ tests := \
   tst-wg14-sigfence \
   tst-wg14-sigfillsets \
   tst-wg14-sigguarded \
+  tst-wg14-stdc-raise \
   tst-wg14-thread-handle \
   tst-wg14-tss \
 # tests

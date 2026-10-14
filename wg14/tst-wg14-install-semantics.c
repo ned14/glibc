@@ -202,7 +202,7 @@ do_test (void)
   if (h3 != NULL)
     TEST_COMPARE (siguninstall (h3), 0);
 
-  /* sig_default_preserve: when stdc_raise() falls through to a SIG_DFL
+  /* sig_default_preserve: when sighandle() falls through to a SIG_DFL
      previously-installed disposition for a non-terminating default
      (SIGCONT), the built-in reset-and-re-raise must NOT permanently
      discard the library's installed handler (wg14_signals analysis.md
@@ -219,7 +219,7 @@ do_test (void)
   TEST_VERIFY (before.sa_handler != SIG_IGN);
   /* No decider claims the raise; the SIG_DFL default action is taken via
      reset-and-re-raise, which must preserve the installed handler.  */
-  TEST_VERIFY (stdc_raise (SIGCONT, NULL, NULL) == true);
+  TEST_VERIFY (sighandle (SIGCONT, NULL, NULL) == true);
   memset (&after, 0, sizeof (after));
   TEST_COMPARE (sigaction (SIGCONT, NULL, &after), 0);
   TEST_VERIFY (after.sa_handler != SIG_DFL);

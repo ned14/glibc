@@ -91,8 +91,8 @@ Major new features:
 * A new locale has been added: hrx_BR (Hunsrik language spoken in Brazil).
 
 * The WG14 N3924 improved-C-signals API is now available on Linux, declared
-  in <signal.h> and <threads.h> under __USE_GNU: sigguarded, stdc_raise,
-  siginstall, siguninstall, siguninstall_system, signal_decider_create,
+  in <signal.h> and <threads.h> under __USE_GNU: sigguarded, sighandle,
+  stdc_raise, siginstall, siguninstall, siguninstall_system, signal_decider_create,
   signal_decider_destroy, sigfillset_synchronous,
   sigfillset_asynchronous_nondebug, sigfillset_asynchronous_debug,
   sigdecider_abandon, sigdecider_abandon_resume, siginstall_set_sa_flags_np,

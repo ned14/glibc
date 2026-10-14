@@ -126,7 +126,7 @@ noop_recovery (const struct stdc_siginfo *rsi)
 static union stdc_siginfo_value
 guarded_func (union stdc_siginfo_value value)
 {
-  (void) stdc_raise (SIGSEGV, NULL, NULL);
+  (void) sighandle (SIGSEGV, NULL, NULL);
   return value;
 }
 

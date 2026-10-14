@@ -69,8 +69,8 @@ static int raise_result2;
 static union stdc_siginfo_value
 guarded_calls_raise (union stdc_siginfo_value value)
 {
-  raise_result1 = stdc_raise (SIGNAL_TO_USE, NULL, NULL);
-  raise_result2 = stdc_raise (SIGNAL_TO_USE, NULL, NULL);
+  raise_result1 = sighandle (SIGNAL_TO_USE, NULL, NULL);
+  raise_result2 = sighandle (SIGNAL_TO_USE, NULL, NULL);
   return value;
 }
 
@@ -83,7 +83,7 @@ noop_recovery (const struct stdc_siginfo *rsi)
 static union stdc_siginfo_value
 single_raise (union stdc_siginfo_value value)
 {
-  (void) stdc_raise (SIGNAL_TO_USE, NULL, NULL);
+  (void) sighandle (SIGNAL_TO_USE, NULL, NULL);
   return value;
 }
 
@@ -181,7 +181,7 @@ outer_guarded_body (union stdc_siginfo_value value)
       nested_inner_guard (value);
       inner_abandon_failed = 1;
     }
-  (void) stdc_raise (SIGNAL_TO_USE, NULL, NULL);
+  (void) sighandle (SIGNAL_TO_USE, NULL, NULL);
   return value;
 }
 
@@ -190,8 +190,8 @@ double_raise (union stdc_siginfo_value value)
 {
   /* Only the first raise returns (resume_execution); the second raise's
      decider invokes recovery and never returns here.  */
-  raise_result5 = stdc_raise (SIGNAL_TO_USE, NULL, NULL);
-  (void) stdc_raise (SIGNAL_TO_USE, NULL, NULL);
+  raise_result5 = sighandle (SIGNAL_TO_USE, NULL, NULL);
+  (void) sighandle (SIGNAL_TO_USE, NULL, NULL);
   return value;
 }
 
@@ -213,9 +213,9 @@ do_test (void)
     void *decider1 = signal_decider_create (
 	&guarded, false, global_abandon_resume_decider, value);
     TEST_VERIFY (decider1 != NULL);
-    TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == true);
+    TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == true);
     TEST_COMPARE (global_decider_calls, 1);
-    TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == true);
+    TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == true);
     TEST_COMPARE (global_decider_calls, 2);
     TEST_COMPARE (signal_decider_destroy (decider1), 0);
     TEST_COMPARE (siguninstall (handlers), 0);
@@ -234,13 +234,13 @@ do_test (void)
     TEST_VERIFY (decider != NULL);
     if (setjmp (global_abandon_env) == 0)
       {
-	TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == true);
+	TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == true);
 	TEST_VERIFY (0 && "global decider failed to abandon");
       }
     TEST_COMPARE (global_abandon_calls, 1);
     if (setjmp (global_abandon_env) == 0)
       {
-	TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == true);
+	TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == true);
 	TEST_VERIFY (0 && "global decider failed to abandon");
       }
     TEST_COMPARE (global_abandon_calls, 2);
@@ -259,7 +259,7 @@ do_test (void)
     TEST_VERIFY (raise_result2);
     TEST_COMPARE (guarded_ret.int_value, 7);
     TEST_COMPARE (frame_decider_calls, before + 2);
-    TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == false);
+    TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == false);
     TEST_COMPARE (frame_decider_calls, before + 2);
   }
 
@@ -277,7 +277,7 @@ do_test (void)
 	TEST_VERIFY (0 && "frame decider failed to abandon");
       }
     TEST_COMPARE (frame_abandon_calls, 1);
-    TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == false);
+    TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == false);
     TEST_COMPARE (frame_abandon_calls, 1);
     const union stdc_siginfo_value ret_value
 	= sigguarded (&guarded, single_raise, fresh_counting_recovery,
@@ -299,7 +299,7 @@ do_test (void)
     TEST_VERIFY (raise_result5);
     TEST_COMPARE (flicker_recover_calls, 2);
     TEST_COMPARE (ret_value.int_value, 7);
-    TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == false);
+    TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == false);
     TEST_COMPARE (flicker_recover_calls, 2);
   }
 
@@ -319,7 +319,7 @@ do_test (void)
     TEST_COMPARE (outer_decider_calls, 1);
     TEST_COMPARE (outer_recovery_calls, 1);
     TEST_COMPARE (ret_value.int_value, 7);
-    TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == false);
+    TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == false);
     TEST_COMPARE (outer_decider_calls, 1);
   }
 

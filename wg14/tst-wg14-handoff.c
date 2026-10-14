@@ -57,7 +57,7 @@ claiming_decider (struct stdc_siginfo *rsi)
 static int
 do_test (void)
 {
-  /* nsih_siginfo_handoff: stdc_raise(signo, NULL, NULL) hands off to the
+  /* nsih_siginfo_handoff: sighandle(signo, NULL, NULL) hands off to the
      previously installed handler; an SA_SIGINFO handler must receive a
      synthesised minimal siginfo_t (non-NULL, si_signo set, si_code
      SI_USER) rather than NULL, which would crash any handler that reads
@@ -77,9 +77,9 @@ do_test (void)
     TEST_VERIFY (handlers != NULL);
     if (handlers == NULL)
       return 1;
-    /* No deciders claim the raise, so stdc_raise hands off to the
+    /* No deciders claim the raise, so sighandle hands off to the
        pre-existing SA_SIGINFO handler with a synthesised siginfo.  */
-    TEST_VERIFY (stdc_raise (SIGUSR2, NULL, NULL) == true);
+    TEST_VERIFY (sighandle (SIGUSR2, NULL, NULL) == true);
     TEST_COMPARE (handler_calls, 1);
     TEST_VERIFY (saw_valid_si != 0);
     TEST_VERIFY (saw_signo != 0);

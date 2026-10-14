@@ -709,12 +709,18 @@ struct global_signal_decider_t;
     int signo;  /* The signal raised.  */
 
     /* The system specific error code for this signal, the si_errno code
-       (POSIX).  Zero when the raise carried no OS info.  */
+       (POSIX).  Zero when raw_info was null and an implementation-defined
+       default signal information was constructed (e.g.
+       stdc_raise(signo, NULL, NULL)).  */
     stdc_siginfo_error_code_t error_code;
-    void *addr;  /* Memory location which caused fault, if appropriate.  */
+    void *addr;  /* Memory location which caused fault, if appropriate.
+                    NULL when raw_info was null.  */
     union stdc_siginfo_value value;  /* A user-defined value.  */
 
-    /* The OS specific signal info.  */
+    /* The OS specific signal info.  A stdc_raise(signo, NULL, NULL) constructs
+       an implementation-defined default signal information object and a
+       context object representing the calling stack frame, and sets raw_info
+       and raw_context to point at them.  */
     stdc_siginfo_siginfo_t *raw_info;
     /* The OS specific ucontext_t (POSIX).  */
     stdc_siginfo_context_t *raw_context;
@@ -755,8 +761,8 @@ struct global_signal_decider_t;
      installed disposition for that signal was SIG_DFL.  `signo' is the
      signal whose default action is being taken, `raw_info' the raw OS
      siginfo_t * of the original delivery, and `raw_context' the raw
-     ucontext_t *; either may be NULL when the raise carried no OS info.
-     The callback must be async-signal-safe.  */
+     ucontext_t *; either may be NULL when the original delivery carried no
+     OS info.  The callback must be async-signal-safe.  */
   typedef void (sig_default_action_np_t) (
   int signo, stdc_siginfo_siginfo_t *raw_info, void *raw_context);
 
@@ -799,14 +805,53 @@ struct global_signal_decider_t;
      function previously abandoned.  */
   extern void sigdecider_abandon_resume (struct stdc_siginfo *rsi);
 
-  /* THREADSAFE USUALLY ASYNC-SIGNAL-SAFE Call the currently installed
-     signal decider for a signal (POSIX), or raise a Win32 structured
-     exception (Windows), returning false if no decider is installed for
-     that signal.  Specify zero for `signo' to ensure the calling thread's
-     per-thread state is set up and return immediately doing nothing
-     else.  */
-  extern bool stdc_raise (int signo, stdc_siginfo_siginfo_t *raw_info,
+  /* THREADSAFE USUALLY ASYNC-SIGNAL-SAFE Raise a signal into this library's
+     own signal handling chain: the calling thread's currently active
+     sigguarded() guard frames are walked directly, then the global deciders
+     installed for the signal are called, and if none of them handles the
+     signal (returns a decision other than sig_decision_next_decider), the
+     disposition captured when this library first installed the signal is
+     handed the signal.  On Windows a Win32 structured exception is raised
+     instead.
+
+     On POSIX this function does NOT call raise(), and it does not require the
+     raw signal handler to be installed: the guard-frame walk works with no
+     siginstall() at all.  It returns false when no decider handles the signal
+     and there is no installed handler for `signo' (i.e. no siginstall() ever
+     installed that signal number), when `signo' is zero, when `signo' is not
+     a valid signal number, or when the per-thread setup fails; it returns
+     true when a decider handles the signal or the previously installed
+     handler is handed the signal.  Specify zero for `signo' to ensure the
+     calling thread's per-thread state is set up and return immediately doing
+     nothing else.
+
+     A NULL raw_info or raw_context is replaced by a constructed
+     implementation-defined default: a NULL raw_info yields a default signal
+     information object, and a NULL raw_context an object representing the
+     calling stack frame; each decider is given a `struct stdc_siginfo' whose
+     raw_info and raw_context members point at the supplied or constructed
+     objects, which persist at least as long as it.  */
+  extern bool sighandle (int signo, stdc_siginfo_siginfo_t *raw_info,
                           stdc_siginfo_context_t *raw_context);
+
+  /* THREADSAFE ASYNC-SIGNAL-SAFE Behaves as if it called the `raise' function
+     (7.14.2.4) with the argument `signo', except that the additional
+     information raw_info and raw_context is made available to the signal
+     deciders.  Because it behaves as if it called raise(), signal deciders
+     are invoked for `signo' only if `signo' is activated, and if a signal
+     handler is called this function does not return until after the signal
+     handler (and any signal deciders) have completed.
+
+     If raw_info is NULL, an implementation-defined default signal information
+     object is constructed.  If raw_context is NULL, an object representing
+     the calling stack frame is constructed.  The raw_info and raw_context
+     members of the `struct stdc_siginfo' passed to deciders are never NULL.
+
+     Returns zero if successful and nonzero if unsuccessful.  If `signo' is
+     not a valid signal number, this function is unsuccessful and no signal is
+     raised.  */
+  extern int stdc_raise (int signo, stdc_siginfo_siginfo_t *raw_info,
+                         stdc_siginfo_context_t *raw_context);
 
   /* THREADSAFE Installs, and potentially enables, the global signal
      handlers for the signals specified by `guarded'.  Each signal

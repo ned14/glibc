@@ -133,7 +133,7 @@ do_test (void)
       = signal_decider_create (&guarded, false, declining_kind_decider,
 			       (union stdc_siginfo_value){ 0 });
   TEST_VERIFY (decline != NULL);
-  TEST_VERIFY (stdc_raise (SIGUSR1, &user_info, NULL) == true);
+  TEST_VERIFY (sighandle (SIGUSR1, &user_info, NULL) == true);
   TEST_COMPARE (user_handler_calls, 1);
   TEST_VERIFY (user_saw_signo);
   TEST_VERIFY (user_saw_si_code);
@@ -146,7 +146,7 @@ do_test (void)
   void *claim = signal_decider_create (&guarded, false, claiming_kind_decider,
 				       (union stdc_siginfo_value){ 0 });
   TEST_VERIFY (claim != NULL);
-  TEST_VERIFY (stdc_raise (SIGUSR1, NULL, NULL) == true);
+  TEST_VERIFY (sighandle (SIGUSR1, NULL, NULL) == true);
   TEST_COMPARE (user_handler_calls, 1);
   TEST_COMPARE (signal_decider_destroy (claim), 0);
 

@@ -66,7 +66,7 @@ sigill_decider_func (struct stdc_siginfo *rsi)
 static union stdc_siginfo_value
 sigill_func (union stdc_siginfo_value value)
 {
-  (void) stdc_raise (SIGNAL_TO_USE, NULL, NULL);
+  (void) sighandle (SIGNAL_TO_USE, NULL, NULL);
   return value;
 }
 
@@ -74,7 +74,7 @@ static int
 sigill_thread (void *arg)
 {
   (void) arg;
-  return stdc_raise (SIGNAL_TO_USE, NULL, NULL);
+  return sighandle (SIGNAL_TO_USE, NULL, NULL);
 }
 
 /* Nested kernel delivery (port of nested_decider_rsi_test.c): the first
@@ -82,8 +82,8 @@ sigill_thread (void *arg)
    the kernel delivers into the installed raw handler (SA_NODEFER leaves
    the signal unblocked inside the handler); the nested delivery runs the
    same thread-local frame's decider again, each activation with its own
-   rsi - the outer (software, NULL raw_info) must not be clobbered by the
-   nested (kernel siginfo) activation.  */
+   rsi - the outer (software, constructed-default raw_info) must not be
+   clobbered by the nested (kernel siginfo) activation.  */
 static atomic_int outer_decider_calls;
 static atomic_int nested_decider_calls;
 static volatile int outer_saw_nested_info;
@@ -94,13 +94,15 @@ nested_rsi_decider (struct stdc_siginfo *rsi)
 {
   if (atomic_fetch_add (&outer_decider_calls, 1) == 0)
     {
-      /* Outer activation: software raise with NULL info.  */
-      if (rsi->raw_info != NULL)
+      /* Outer activation: software raise with NULL info, which the library
+	 surfaces as a constructed default (non-NULL), not NULL.  */
+      void *const before = rsi->raw_info;
+      if (before == NULL)
 	outer_saw_nested_info = 2;
       /* Re-enter the same frame's decider via a real delivery; the
 	 kernel siginfo is what the nested activation must carry.  */
       kill (getpid (), SIGNAL_TO_USE);
-      if (rsi->raw_info != NULL)
+      if (rsi->raw_info != before)
 	outer_saw_nested_info = 1;
       return sig_decision_resume_execution;
     }
@@ -135,9 +137,9 @@ do_test (void)
   }
 
   /* Nested kernel delivery arm: each activation of the frame decider
-     gets its own rsi; the outer (software) activation must still see
-     raw_info == NULL after the nested (real, kernel-siginfo) delivery
-     ran inside it.  */
+     gets its own rsi; the outer (software) activation must still see its
+     constructed-default raw_info after the nested (real, kernel-siginfo)
+     delivery ran inside it.  */
   {
     atomic_store_explicit (&outer_decider_calls, 0, memory_order_relaxed);
     atomic_store_explicit (&nested_decider_calls, 0, memory_order_relaxed);
@@ -173,7 +175,7 @@ do_test (void)
     void *sigill_decider
 	= signal_decider_create (&guarded, false, sigill_decider_func, value);
     TEST_VERIFY (sigill_decider != NULL);
-    TEST_VERIFY (stdc_raise (SIGNAL_TO_USE, NULL, NULL) == true);
+    TEST_VERIFY (sighandle (SIGNAL_TO_USE, NULL, NULL) == true);
     TEST_COMPARE (shared.count_decider, 1);
     TEST_COMPARE (shared.count_recovery, 0);
     TEST_COMPARE (signal_decider_destroy (sigill_decider), 0);

@@ -1974,6 +1974,7 @@ GLIBC_2.44 stdc_leading_zeros_ui F
 GLIBC_2.44 stdc_leading_zeros_ul F
 GLIBC_2.44 stdc_leading_zeros_ull F
 GLIBC_2.44 stdc_leading_zeros_us F
+GLIBC_2.44 sighandle F
 GLIBC_2.44 stdc_raise F
 GLIBC_2.44 stdc_trailing_ones_uc F
 GLIBC_2.44 stdc_trailing_ones_ui F

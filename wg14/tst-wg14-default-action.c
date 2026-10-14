@@ -121,7 +121,7 @@ do_test (void)
     memset (&info, 0, sizeof (info));
     info.si_signo = SIGUSR2;
     info.si_code = SI_USER;
-    TEST_VERIFY (stdc_raise (SIGUSR2, &info, NULL) == true);
+    TEST_VERIFY (sighandle (SIGUSR2, &info, NULL) == true);
     TEST_COMPARE (callback_calls, 1);
     TEST_COMPARE (callback_signo, SIGUSR2);
     TEST_COMPARE (callback_info_addr, (intptr_t) &info);
@@ -144,7 +144,7 @@ do_test (void)
     TEST_VERIFY (handlers2 != NULL);
     if (handlers2 == NULL)
       return 1;
-    TEST_VERIFY (stdc_raise (SIGCONT, NULL, NULL) == true);
+    TEST_VERIFY (sighandle (SIGCONT, NULL, NULL) == true);
     TEST_COMPARE (callback_calls, 1); /* The custom callback was not
 					 invoked again.  */
     struct sigaction after;
