@@ -853,15 +853,22 @@ struct global_signal_decider_t;
   extern int stdc_raise (int signo, stdc_siginfo_siginfo_t *raw_info,
                          stdc_siginfo_context_t *raw_context);
 
+  /* Implementation-defined opaque pointer types for the N3924 handles
+     (7.14.1): a set of installed signal handlers, and an installed global
+     signal decider.  A null pointer value represents no installation or no
+     decider respectively.  */
+  typedef struct sig_handlers_s *sig_handlers_t;
+  typedef struct signal_decider_s *signal_decider_t;
+
   /* THREADSAFE Installs, and potentially enables, the global signal
      handlers for the signals specified by `guarded'.  Each signal
      installed is threadsafe reference counted.  If `guarded' is null, all
      the standard POSIX signals are used.  Returns an opaque handle to
      pass to siguninstall(), or NULL on failure.  */
-  extern void *siginstall (const sigset_t *guarded);
+  extern sig_handlers_t siginstall (const sigset_t *guarded);
 
   /* THREADSAFE Uninstall a previously installed signal guard.  */
-  extern int siguninstall (void *i);
+  extern int siguninstall (sig_handlers_t i);
 
   /* THREADSAFE Uninstall a previously system installed signal guard.  */
   extern int siguninstall_system (int version);
@@ -869,13 +876,13 @@ struct global_signal_decider_t;
   /* THREADSAFE NOT REENTRANT Create a global signal continuation decider.
      Returns an opaque pointer to the registered decider, or NULL if
      malloc failed.  */
-  extern void *signal_decider_create (const sigset_t *guarded,
-                                      bool callfirst,
-                                      sig_decide_t decider,
-                                      union stdc_siginfo_value value);
+  extern signal_decider_t signal_decider_create (const sigset_t *guarded,
+                                                 bool callfirst,
+                                                 sig_decide_t decider,
+                                                 union stdc_siginfo_value value);
 
   /* THREADSAFE Destroy a global signal continuation decider.  */
-  extern int signal_decider_destroy (void *decider);
+  extern int signal_decider_destroy (signal_decider_t decider);
 
   /* THREADSAFE (POSIX only) Sets the sa_flags used when the library
      installs its raw signal handler.  The default is SA_SIGINFO |

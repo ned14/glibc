@@ -53,10 +53,13 @@ do_test (void)
   /* Path (a): siginstall(NULL) - "all the standard POSIX signals".  The
      handle must cover the standard signals and exclude glibc's internal
      signals (32/33) and the whole realtime range.  */
-  sigset_t *set = siginstall (NULL);
-  TEST_VERIFY (set != NULL);
-  if (set == NULL)
+  sig_handlers_t handle = siginstall (NULL);
+  TEST_VERIFY (handle != NULL);
+  if (handle == NULL)
     return 1;
+  /* The handle is an opaque sig_handlers_t; this white-box test inspects the
+     installed signal set through it.  */
+  const sigset_t *set = (const sigset_t *) handle;
   TEST_COMPARE (sigismember (set, SIGILL), 1);
   TEST_COMPARE (sigismember (set, SIGTERM), 1);
   TEST_COMPARE (sigismember (set, SIGSEGV), 1);
@@ -64,7 +67,7 @@ do_test (void)
   TEST_COMPARE (sigismember (set, SIGSETXID_NUM), 0);
   for (int signo = SIGRTMIN; signo <= SIGRTMAX; signo++)
     TEST_COMPARE (sigismember (set, signo), 0);
-  TEST_COMPARE (siguninstall (set), 0);
+  TEST_COMPARE (siguninstall (handle), 0);
 
   /* Path (b): an explicit set built with glibc's own sigfillset() - the
      documented glibc consumer pattern - installs fine and its handle
@@ -72,15 +75,16 @@ do_test (void)
      before the reference code sees the set).  */
   sigset_t guarded;
   sigfillset (&guarded);
-  sigset_t *explicit = siginstall (&guarded);
-  TEST_VERIFY (explicit != NULL);
-  if (explicit == NULL)
+  sig_handlers_t explicit_handle = siginstall (&guarded);
+  TEST_VERIFY (explicit_handle != NULL);
+  if (explicit_handle == NULL)
     return 1;
+  const sigset_t *explicit = (const sigset_t *) explicit_handle;
   TEST_COMPARE (sigismember (explicit, SIGCANCEL_NUM), 0);
   TEST_COMPARE (sigismember (explicit, SIGSETXID_NUM), 0);
   TEST_COMPARE (sigismember (explicit, SIGILL), 1);
   TEST_COMPARE (sigismember (explicit, SIGTERM), 1);
-  TEST_COMPARE (siguninstall (explicit), 0);
+  TEST_COMPARE (siguninstall (explicit_handle), 0);
 
   /* Path (c): an explicit set with SIGCANCEL hand-added via sigaddset.
      Inside libc the wg14 library objects see the internal pthread
